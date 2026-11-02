@@ -34,6 +34,14 @@ VOICES = os.path.join(ROOT, "voices")
 BUILD = os.path.join(ROOT, "build")
 OUTPUT = os.path.join(ROOT, "output", "alceknow_monedas.mp4")
 
+# Textos del gancho y del cierre (otros videos los sobreescriben)
+HOOK_TITLE = "¿CÓMO GANAR *MONEDAS FÁCIL?*"
+HOOK_SUB = "en *ALCES VS CANADÁ*"
+HOOK_DECOR = "coins"          # coins | versus
+HOOK_SIZE = 104
+OUTRO_TEXT = "¡Sígueme para más clases de *AlceKnow!*"
+OUTRO_ICON = "book"
+
 W, H, FPS = 1080, 1920, 30
 
 # Voz: "un poco mas rapida" -> length_scale < 1 (0.85 = ~18% mas rapido)
@@ -72,6 +80,8 @@ class Segment:
     label: str = ""
     color: tuple = YELLOW
     sfx: str = "ding"
+    # kind == "versus": ((etiqueta, color, icono, [lineas]), (...))
+    versus: tuple | None = None
     start: float = 0.0
     end: float = 0.0
     line_starts: list = field(default_factory=list)
@@ -258,6 +268,10 @@ ICON_BOXES = {
     "brilliant": (0, 139, 128, 265),   # !! celeste
     "crown": (0, 280, 128, 406),       # corona (VIP)
     "book": (150, 139, 278, 265),      # libro (AlceKnow)
+    "flag": (610, 419, 738, 545),      # bandera negra
+    "timer": (610, 280, 738, 406),     # cronometro negro
+    "bolt": (150, 0, 278, 125),        # rayo (habilidades)
+    "interrobang": (0, 560, 128, 685), # ?! amarillo
 }
 
 
@@ -268,6 +282,16 @@ def load_icons():
         x0, y0, x1, y1 = box
         crop = sheet.crop((x0 - 4, y0 - 4, x1 + 4, y1 + 4))
         out[k] = remove_bg(crop, thresh=20)
+    # los iconos negros se pierden sobre el fondo oscuro: anillo blanco
+    for k in ("flag", "timer"):
+        ic = out[k]
+        pad = 10
+        ring = Image.new("RGBA", (ic.width + pad * 2, ic.height + pad * 2),
+                         (0, 0, 0, 0))
+        ImageDraw.Draw(ring).ellipse((2, 2, ring.width - 3, ring.height - 3),
+                                     fill=(255, 255, 255, 255))
+        ring.alpha_composite(ic, (pad, pad - 3))
+        out[k] = ring
     return out
 
 
@@ -522,15 +546,18 @@ class Renderer:
         self.icons = load_icons()
         self.coin = coin(120)
         self.brand = self._brand()
-        self.hook_title = render_text_block(
-            "¿CÓMO GANAR *MONEDAS FÁCIL?*", 104, 900, stroke=10)
-        self.hook_sub = render_text_block(
-            "en *ALCES VS CANADÁ*", 66, 900, stroke=8)
-        self.outro = render_text_block(
-            "¡Sígueme para más clases de *AlceKnow!*", 84, 860, stroke=9)
+        self.hook_title = drop_shadow(render_text_block(HOOK_TITLE, HOOK_SIZE,
+                                                          900, stroke=10))
+        self.hook_sub = render_text_block(HOOK_SUB, 66, 900, stroke=8)
+        self.outro = render_text_block(OUTRO_TEXT, 92, 860, stroke=9)
+        self.vs = render_text_block("VS", 120, 400, color=YELLOW, stroke=12)
+        self.versus = {}
         self.items = {}
         self.labels = {}
         for si, seg in enumerate(SCRIPT):
+            if seg.kind == "versus":
+                self.versus[si] = self._layout_versus(seg)
+                continue
             if seg.kind != "play":
                 continue
             self.labels[si] = drop_shadow(render_text_block(
@@ -577,6 +604,50 @@ class Renderer:
             return [next(imgs) if s else None for _, s in seg.lines]
         return [self._fit([s])[0] if s else None for _, s in seg.lines]
 
+    def _layout_versus(self, seg):
+        title = render_text_block(seg.label, 62, 880, stroke=8)
+        cols = []
+        for label, color, icon, lines in seg.versus:
+            lab = render_text_block(label, 64, 420, color=color, stroke=8)
+            rows = [render_text_block(s, 50, 400, stroke=7) for s in lines]
+            cols.append((icon, lab, rows))
+        return title, cols
+
+    def _draw_versus(self, img, si, seg, t, lt):
+        x0, y0, x1, y1 = self.CARD
+        appear = ease_out(lt / 0.25)
+        card = Image.new("RGBA", (x1 - x0, y1 - y0), (0, 0, 0, 0))
+        d = ImageDraw.Draw(card)
+        d.rounded_rectangle((0, 0, card.width - 1, card.height - 1), 48,
+                            fill=(14, 12, 32, 170), outline=YELLOW + (255,),
+                            width=8)
+        cw = card.width // 2
+        for k, (_, color, _, _) in enumerate(seg.versus):
+            d.rounded_rectangle((20 + k * cw, 140, cw - 20 + k * cw,
+                                 card.height - 24), 30,
+                                fill=color + (55,))
+        paste_center(img, card, W / 2, (y0 + y1) / 2, alpha=appear)
+        title, cols = self.versus[si]
+        paste_center(img, title, W / 2, y0 + 72,
+                     scale=max(ease_out_back(lt / 0.4), 0.01))
+        for k, (icon, lab, rows) in enumerate(cols):
+            cx = W / 2 + (k - 0.5) * (x1 - x0) / 2
+            delay = 0.25 + k * 0.35
+            pop = max(ease_out_back((lt - delay) / 0.4), 0.0)
+            paste_center(img, drop_shadow(self.icons[icon]), cx, y0 + 225,
+                         scale=1.0 * pop)
+            paste_center(img, lab, cx, y0 + 345, scale=max(pop, 0.01))
+            y = y0 + 400
+            for j, r in enumerate(rows):
+                a = ease_out((lt - delay - 0.3 - j * 0.25) / 0.3)
+                paste_center(img, r, cx, y + r.height / 2 + (1 - a) * 30,
+                             alpha=a)
+                y += r.height + 26
+        vs_pop = ease_out_back((lt - 0.9) / 0.4)
+        paste_center(img, drop_shadow(self.vs), W / 2, y0 + 250,
+                     scale=max(vs_pop, 0.01) *
+                     (1 + 0.06 * math.sin(t * 2 * math.pi * 1.5)))
+
     def _mouth_track(self):
         on, opened = False, []
         for v in self.env:
@@ -612,9 +683,11 @@ class Renderer:
             self._draw_intro(img, t)
         elif seg.kind == "outro":
             pop = ease_out_back(lt / 0.4)
-            paste_center(img, drop_shadow(self.icons["book"]), W / 2, 420,
-                         scale=1.8 * max(pop, 0.01))
+            paste_center(img, drop_shadow(self.icons[OUTRO_ICON]), W / 2,
+                         420, scale=1.8 * max(pop, 0.01))
             paste_center(img, self.outro, W / 2, 700, scale=max(pop, 0.01))
+        elif seg.kind == "versus":
+            self._draw_versus(img, si, seg, t, lt)
         else:
             self._draw_play(img, si, seg, t, lt)
 
@@ -640,9 +713,18 @@ class Renderer:
     def _draw_intro(self, img, t):
         # gancho: visible desde el frame 0
         pulse = 1.0 + 0.035 * math.sin(t * 2 * math.pi * 1.6)
-        paste_center(img, drop_shadow(self.hook_title), W / 2, 480,
-                     scale=pulse)
-        paste_center(img, self.hook_sub, W / 2, 760)
+        th = self.hook_title.height
+        title_y = max(480, 250 + th / 2)
+        paste_center(img, self.hook_title, W / 2, title_y, scale=pulse)
+        paste_center(img, self.hook_sub, W / 2,
+                     max(760, title_y + th / 2 + 10))
+        if HOOK_DECOR == "versus":
+            for k, icon in enumerate(("flag", "timer")):
+                cx = 230 + k * 620
+                dy = math.sin(t * 3 + k * 1.7) * 16
+                paste_center(img, drop_shadow(self.icons[icon]), cx, 980 + dy,
+                             scale=1.25, angle=math.sin(t * 2 + k) * 8)
+            return
         for i, (cx, cy, ph) in enumerate([(110, 900, 0), (970, 880, 1.3),
                                           (230, 1060, 2.1), (850, 1080, 0.7),
                                           (95, 1240, 2.8), (985, 1250, 1.9)]):
@@ -731,13 +813,14 @@ def main():
     print("Listo:", OUTPUT)
 
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--preview":
-        # python generate_video.py --preview 1.0 5.0 12.0  -> PNGs en build/
+def run(argv):
+    """python <script>.py            -> renderiza el MP4
+    python <script>.py --preview 1 10 -> capturas PNG en build/"""
+    if len(argv) > 1 and argv[1] == "--preview":
         model = ensure_voice()
         audio, total, env = build_audio(model)
         r = Renderer(env, total)
-        for s in sys.argv[2:]:
+        for s in argv[2:]:
             fr = int(float(s) * FPS)
             r.frame(fr).save(os.path.join(BUILD, f"preview_{s}.png"))
         for seg in SCRIPT:
@@ -745,3 +828,7 @@ if __name__ == "__main__":
         print("total", round(total, 2))
     else:
         main()
+
+
+if __name__ == "__main__":
+    run(sys.argv)

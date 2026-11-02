@@ -7,11 +7,22 @@ Video vertical para TikTok del **Alce Profesor** explicando cómo ganar monedas 
 - Gancho en el primer frame: "¿CÓMO GANAR MONEDAS FÁCIL? en ALCES VS CANADÁ"
 - Texto grande y centrado dentro de la zona segura de TikTok
 
+## Videos
+
+| Video | Script | Duración |
+|---|---|---|
+| ¿Cómo ganar monedas fácil? | `generate_video.py` | ~53 s |
+| ¿Es más fácil ganar como Alce o como Soldado? | `video_alces_vs_soldados.py` | ~35 s |
+
+Para un video nuevo, copia `video_alces_vs_soldados.py` y cambia `SCRIPT`, el gancho y el cierre.
+Tipos de tarjeta: `intro` (gancho), `play` (ícono + título + textos), `versus` (dos columnas con VS) y `outro`.
+
 ## Generarlo de nuevo
 
 ```bash
 pip install -r requirements.txt   # también necesita ffmpeg instalado
-python generate_video.py
+python generate_video.py              # video de monedas
+python video_alces_vs_soldados.py     # video alces vs soldados
 ```
 
 La voz se genera offline con [Piper](https://github.com/rhasspy/piper) (voz masculina es_MX "ald",
