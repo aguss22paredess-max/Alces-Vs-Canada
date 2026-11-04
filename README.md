@@ -13,6 +13,11 @@ Video vertical para TikTok del **Alce Profesor** explicando cómo ganar monedas 
 |---|---|---|
 | ¿Cómo ganar monedas fácil? | `generate_video.py` | ~53 s |
 | ¿Es más fácil ganar como Alce o como Soldado? | `video_alces_vs_soldados.py` | ~35 s |
+| Ranking de TODAS las clases de Soldado | `video_ranking_soldados.py` | ~57,5 s |
+
+El ranking agrega barra de nota animada, íconos de equipo dibujados, tabla final,
+música de fondo sintetizada, whoosh en transiciones, ding en cada nota y redoble antes de Pyro.
+`python video_ranking_soldados.py --muestras` guarda fotogramas de revisión en `output/muestras_ranking/`.
 
 Para un video nuevo, copia `video_alces_vs_soldados.py` y cambia `SCRIPT`, el gancho y el cierre.
 Tipos de tarjeta: `intro` (gancho), `play` (ícono + título + textos), `versus` (dos columnas con VS) y `outro`.
