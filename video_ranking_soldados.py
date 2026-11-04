@@ -116,7 +116,7 @@ CLASES = [
         ("revolver", "Revólver", "", ""),
         ("knife", "Navaja", "", ""),
     ], ["+Pro: *más vida* y *más daño* que el resto"],
-        "“La peor clase de paga… aunque sí sirve”",
+        "“La peor clase de paga…\naunque sí sirve”",
         "Número tres: Disciplinado. Siete de diez. La peor clase de paga... "
         "aunque sí sirve.", "sorprendido", tag="DE PAGA", gesto="hombros"),
     Clase(2, "LEÑADOR", 8.5, "8.5", [
@@ -131,7 +131,7 @@ CLASES = [
         ("flamethrower", "Lanzallamas", "", ""),
         ("axe", "Hacha", "", ""),
         ("flashlight", "Linterna", "", ""),
-    ], ["i*40 de daño instantáneo* + *5 por segundo* durante *9 segundos*"],
+    ], ["i*40 de daño instantáneo*\n+ *5 por segundo* durante *9 segundos*"],
         "“La mejor clase hasta ahora”",
         "¡Pyro! Nueve punto seis de diez. La mejor clase hasta ahora.",
         "senalando"),
@@ -276,7 +276,7 @@ def ding():
 
 def drumroll(dur):
     rng = np.random.default_rng(5)
-    out = np.zeros(int(SR * (dur + 1.2)), np.float32)
+    out = np.zeros(int(SR * (dur + 1.3)) + 1, np.float32)
     t = 0.0
     while t < dur:
         k = t / dur
@@ -284,7 +284,7 @@ def drumroll(dur):
         hit = rng.standard_normal(n) * env_adsr(n, .001, .03)
         hit += note(190, 0.06, (1,), .001, .03) * 0.6
         i = int(t * SR)
-        out[i:i + n] += (0.25 + 0.45 * k) * hit
+        out[i:i + n] += (0.25 + 0.45 * k) * hit[:len(out) - i]
         t += 0.09 - 0.055 * k
     # platillo final
     n = int(SR * 1.2)
@@ -527,8 +527,39 @@ CARD_T = {"name": 0.0, "bar0": 0.35, "bar_end": 1.35, "equip": 1.5,
           "lines": 2.6, "verdict": 3.2}
 
 
+def balanced_width(s, size, max_w, fp):
+    """Ancho minimo que mantiene la misma cantidad de lineas: reparte las
+    palabras parejo y evita lineas con una sola palabra colgando."""
+    f = font(fp, size)
+    words = g.parse_runs(s)
+    n = len(g.wrap_words(words, f, max_w))
+    if n <= 1:
+        return max_w
+    lo, hi = max_w * 0.3, max_w
+    for _ in range(18):
+        mid = (lo + hi) / 2
+        if len(g.wrap_words(words, f, mid)) > n:
+            lo = mid
+        else:
+            hi = mid
+    return hi + 2
+
+
 def text(s, size, max_w=TEXT_W, color=WHITE, stroke=None, fp=FONT_BLACK,
          gap=1.12):
+    if "\n" in s:   # salto de linea manual: cada parte centrada
+        parts = [text(p, size, max_w, color, stroke, fp, gap)
+                 for p in s.split("\n")]
+        w = max(p.width for p in parts)
+        trim = int(size * 0.2)
+        im = Image.new("RGBA", (w, sum(p.height - trim for p in parts) + trim),
+                       (0, 0, 0, 0))
+        y = 0
+        for p in parts:
+            im.alpha_composite(p, ((w - p.width) // 2, y))
+            y += p.height - trim
+        return im
+    max_w = balanced_width(s, size, max_w, fp)
     return render_text_block(s, size, max_w, color=color,
                              stroke=stroke if stroke is not None
                              else max(3, size // 11),
@@ -588,8 +619,9 @@ class CardLayout:
         self.verdict = text(c.veredicto, 50, TEXT_W, color=YELLOW, stroke=7)
         # apilado vertical
         x0, y0, x1, y1 = CARD
-        blocks = [("name", self.name.height - 40)]
-        blocks.append(("bar", 70))
+        # alto visual (drop_shadow agrega 42 px de margen arriba y abajo)
+        blocks = [("name", self.name.height - 84)]
+        blocks.append(("bar", 84))
         blocks.append(("equip", max(i.height for i in self.items)))
         for k, l in enumerate(self.lines):
             blocks.append((f"line{k}", l.height - 6))
@@ -627,6 +659,7 @@ class Renderer:
                                       TEXT_W, stroke=8))
         self.pre1 = drop_shadow(text("Y la *MEJOR* clase es…", 100, TEXT_W,
                                      stroke=11))
+        self.medal = self._medal()
         self.rank_title = drop_shadow(text("RANKING *FINAL*", 70, stroke=9))
         self.outro = drop_shadow(text(
             "¿Estás de acuerdo con el *#1?* *¡COMENTA!*", 84, TEXT_W,
@@ -635,6 +668,15 @@ class Renderer:
         self.sparks = self._make_sparks()
 
     # -- utilidades ---------------------------------------------------------
+    def _medal(self):
+        m = Image.new("RGBA", (260, 260), (0, 0, 0, 0))
+        d = ImageDraw.Draw(m)
+        d.ellipse((10, 10, 250, 250), fill=GOLD, outline=INK, width=10)
+        d.ellipse((38, 38, 222, 222), outline=(255, 236, 150), width=6)
+        d.text((130, 134), "?", font=font(FONT_BLACK, 150), fill=WHITE,
+               anchor="mm", stroke_width=10, stroke_fill=INK)
+        return drop_shadow(m)
+
     def _mouth_track(self):
         on, res = False, []
         for f, v in enumerate(self.lip):
@@ -735,9 +777,6 @@ class Renderer:
                     d.arc((cx - 30 - off, cy - 60 - off, cx + 30 + off,
                            cy + off), 200 if side < 0 else 270,
                           270 if side < 0 else 340, fill=col, width=6)
-            paste_center(img, text("¯\\_(•-•)_/¯", 40, 500, stroke=5,
-                                   fp=FONT_BOLD), W / 2 + 260, head_y - 20,
-                         alpha=a)
 
     def _thought(self, img, cx, cy, t, a):
         d = ImageDraw.Draw(img)
@@ -866,12 +905,21 @@ class Renderer:
                              alpha=a)
         a = ease_out_back((lt - CARD_T["verdict"]) / 0.4)
         if a > 0:
+            # entra como "sello" y despues late suave para que no quede quieto
+            beat = 0.025 * math.sin((lt - CARD_T["verdict"]) * 2 * math.pi
+                                    * 1.2) * min(1, lt - CARD_T["verdict"])
             paste_center(img, L.verdict, W / 2, L.pos["verdict"],
-                         scale=max(a, 0.01))
+                         scale=max(a, 0.01) * (1 + max(beat, -0.01)))
 
     def _bar(self, img, L, t, lt):
         c = L.c
-        bx0, bx1 = SAFE_X0 + 60, SAFE_X1 - 250
+        f = font(FONT_BLACK, 76)
+        f2 = font(FONT_BLACK, 40)
+        num_w = f.getlength(c.nota_txt) + 8 + f2.getlength("/10") + 16
+        bar_w = 500
+        group = bar_w + 18 + num_w
+        bx0 = W / 2 - group / 2      # barra + numero centrados
+        bx1 = bx0 + bar_w
         by = L.pos["bar"]
         bh = 46
         k = ease_out((lt - CARD_T["bar0"]) /
@@ -911,8 +959,6 @@ class Renderer:
         pop = 1.0
         if lt > CARD_T["bar_end"]:
             pop = 1 + 0.25 * max(0, 1 - (lt - CARD_T["bar_end"]) / 0.3)
-        f = font(FONT_BLACK, 76)
-        f2 = font(FONT_BLACK, 40)
         im = Image.new("RGBA", (260, 110), (0, 0, 0, 0))
         dd = ImageDraw.Draw(im)
         dd.text((8, 55), num, font=f, fill=col, anchor="lm", stroke_width=8,
@@ -923,11 +969,22 @@ class Renderer:
         paste_center(img, im, bx1 + 18 + 130, by, scale=pop)
 
     def _draw_pre(self, img, s, t, lt):
-        dark = Image.new("RGBA", (W, H), (0, 0, 0, 90))
+        dark = Image.new("RGBA", (W, H), (0, 0, 0, 110))
         img.alpha_composite(dark)
-        sc = 1 + 0.04 * math.sin(lt * 30) * min(1, lt / s.dur)
-        paste_center(img, self.pre1, W / 2, 620,
+        k = min(1, lt / s.dur)
+        sc = 1 + 0.04 * math.sin(lt * 30) * k
+        paste_center(img, self.pre1, W / 2, 500,
                      scale=ease_out_back(lt / 0.3) * sc)
+        # medalla #1 misteriosa que tiembla mas fuerte con el redoble
+        glow = Image.new("RGBA", (420, 420), (0, 0, 0, 0))
+        ImageDraw.Draw(glow).ellipse((60, 60, 360, 360),
+                                     fill=GOLD + (int(90 + 90 * k),))
+        glow = glow.filter(ImageFilter.GaussianBlur(40))
+        shake = math.sin(lt * 55) * 10 * k
+        pop = max(ease_out_back((lt - 0.15) / 0.35), 0.01)
+        paste_center(img, glow, W / 2, 860, scale=pop * (1 + 0.15 * k))
+        paste_center(img, self.medal, W / 2 + shake, 860, scale=pop,
+                     angle=shake * 0.6)
 
     def _rank_rows(self):
         rows = []
