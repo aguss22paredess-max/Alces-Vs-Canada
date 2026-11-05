@@ -14,6 +14,7 @@ Video vertical para TikTok del **Alce Profesor** explicando cómo ganar monedas 
 | ¿Cómo ganar monedas fácil? | `generate_video.py` | ~53 s |
 | ¿Es más fácil ganar como Alce o como Soldado? | `video_alces_vs_soldados.py` | ~35 s |
 | Ranking de TODAS las clases de Soldado | `video_ranking_soldados.py` | ~57,5 s |
+| Ranking de TODAS las skins de Alce | `video_ranking_skins.py` | ~94 s |
 
 El ranking agrega barra de nota animada, íconos de equipo dibujados, tabla final,
 música de fondo sintetizada, whoosh en transiciones, ding en cada nota y redoble antes de Pyro.
@@ -39,3 +40,11 @@ El guion está en la lista `SCRIPT` de `generate_video.py`.
 ## Assets
 - `assets/alce_profesor_sheet.png` – hoja de modelo del alce (poses y bocas para el lip-sync)
 - `assets/iconos_jugadas.png` – íconos de jugadas (??, ?, 👍, !!, corona, libro)
+
+### Ranking de skins
+- Voz offline Piper `es_MX-claude-high` (la que mejor reconoció Whisper entre las es_MX disponibles;
+  edge-tts no es accesible desde este entorno). El diccionario `FONETICA` corrige solo para el TTS
+  cómo suenan AlceCoins, GOLDMOOSE, Aguz, studs, Halloween, etc.
+- Subtítulos sincronizados frase por frase, con palabras clave en amarillo (`*así*` en el guion).
+- Cada tarjeta dura su narración + 0,5 s.
+- `python video_ranking_skins.py --muestras` genera 5 fotogramas y 10 s de voz en `output/muestras_skins/`.
