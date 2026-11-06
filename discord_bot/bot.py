@@ -1,13 +1,13 @@
 """AlceKnow – bot de Discord de Alces vs Canadá.
 
 Comandos:
-  /ask pregunta:<texto>  Responde cualquier duda sobre Alces vs Canadá.
+  /ask pregunta:<texto>  El Profesor Alce responde dudas del juego (respuestas en respuestas.py,
+                         sin usar ninguna API de pago).
   /moose                 Muestra una foto real de un alce sacada de Wikimedia Commons.
   /moose-origins         Explica dónde viven los alces en el mundo.
 
 Variables de entorno (o archivo .env junto a este script):
   DISCORD_TOKEN       Token del bot (Discord Developer Portal -> Bot -> Reset Token).
-  ANTHROPIC_API_KEY   Clave de la API de Claude, necesaria para /ask.
   GUILD_ID            (Opcional) ID de tu servidor: los comandos aparecen al instante
                       en ese servidor en lugar de tardar hasta 1 h en propagarse.
 """
@@ -20,14 +20,12 @@ import random
 from pathlib import Path
 
 import aiohttp
-import anthropic
 import discord
 from discord import app_commands
 
-BASE_DIR = Path(__file__).resolve().parent
-CONOCIMIENTO = BASE_DIR / "conocimiento.md"
+from respuestas import responder
 
-MODELO = "claude-opus-5-5"
+BASE_DIR = Path(__file__).resolve().parent
 COLOR_ALCE = discord.Color.from_rgb(139, 90, 43)
 LIMITE_DISCORD = 2000
 USER_AGENT = "AlceKnowDiscordBot/1.0 (bot de Discord de Alces vs Canada)"
@@ -47,17 +45,6 @@ def cargar_env(ruta: Path) -> None:
         os.environ.setdefault(clave.strip(), valor.strip().strip('"').strip("'"))
 
 
-def prompt_sistema() -> str:
-    """La personalidad y todo lo que sabe el Profesor Alce vienen de conocimiento.md."""
-    personaje = CONOCIMIENTO.read_text(encoding="utf-8") if CONOCIMIENTO.exists() else ""
-    return (
-        f"{personaje.strip()}\n\n"
-        "═══ FORMATO EN DISCORD ═══\n"
-        "- Escribe directamente la respuesta del Profesor Alce, sin el prefijo \"Profesor Alce:\".\n"
-        "- Puedes usar negritas y listas de Discord cuando ayuden. Nunca pases de 1900 caracteres."
-    )
-
-
 def partir_mensaje(texto: str, limite: int = LIMITE_DISCORD) -> list[str]:
     """Divide un texto largo en trozos que quepan en un mensaje de Discord."""
     partes: list[str] = []
@@ -72,27 +59,6 @@ def partir_mensaje(texto: str, limite: int = LIMITE_DISCORD) -> list[str]:
     if texto:
         partes.append(texto)
     return partes
-
-
-# ---------------------------------------------------------------------------
-# /ask
-# ---------------------------------------------------------------------------
-
-async def preguntar_a_claude(cliente: anthropic.AsyncAnthropic, pregunta: str) -> str:
-    respuesta = await cliente.beta.messages.create(
-        model=MODELO,
-        max_tokens=16000,
-        output_config={"effort": "low"},
-        system=[{"type": "text", "text": prompt_sistema(), "cache_control": {"type": "ephemeral"}}],
-        messages=[{"role": "user", "content": pregunta}],
-        # Si el modelo rechaza la pregunta, la API la reintenta sola con otro modelo.
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-    )
-    if respuesta.stop_reason == "refusal":
-        return "🫎 Esa pregunta no la puedo responder. ¡Prueba con otra sobre Alces vs Canadá!"
-    texto = "".join(b.text for b in respuesta.content if b.type == "text").strip()
-    return texto or "🫎 Me quedé sin palabras… intenta preguntar de otra forma."
 
 
 # ---------------------------------------------------------------------------
@@ -193,15 +159,9 @@ class AlceKnow(discord.Client):
         super().__init__(intents=discord.Intents.default())
         self.tree = app_commands.CommandTree(self)
         self.sesion: aiohttp.ClientSession | None = None
-        self.claude: anthropic.AsyncAnthropic | None = None
 
     async def setup_hook(self) -> None:
         self.sesion = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15))
-        if os.environ.get("ANTHROPIC_API_KEY"):
-            self.claude = anthropic.AsyncAnthropic()
-        else:
-            log.warning("Falta ANTHROPIC_API_KEY: /ask no podrá responder.")
-
         registrar_comandos(self)
         guild_id = os.environ.get("GUILD_ID")
         if guild_id:
@@ -224,25 +184,13 @@ class AlceKnow(discord.Client):
 
 
 def registrar_comandos(bot: AlceKnow) -> None:
-    @bot.tree.command(name="ask", description="Pregúntale a AlceKnow lo que quieras de Alces vs Canadá")
+    @bot.tree.command(name="ask", description="Pregúntale al Profesor Alce lo que quieras de Alces vs Canadá")
     @app_commands.describe(pregunta="Tu pregunta sobre el juego")
     async def ask(interaction: discord.Interaction, pregunta: app_commands.Range[str, 1, 1000]) -> None:
-        if bot.claude is None:
-            await interaction.response.send_message(
-                "⚠️ El bot no tiene configurada la clave de Claude (ANTHROPIC_API_KEY).", ephemeral=True
-            )
-            return
-        await interaction.response.defer(thinking=True)
-        try:
-            texto = await preguntar_a_claude(bot.claude, pregunta)
-        except anthropic.RateLimitError:
-            texto = "🫎 Estoy recibiendo demasiadas preguntas. Intenta de nuevo en un momento."
-        except (anthropic.APIStatusError, anthropic.APIConnectionError) as exc:
-            log.exception("Error en la API de Claude: %s", exc)
-            texto = "🫎 Algo falló al pensar la respuesta. Intenta de nuevo en un rato."
+        texto = responder(pregunta)
         encabezado = f"❓ **{interaction.user.display_name}:** {pregunta}\n\n"
         partes = partir_mensaje(encabezado + texto)
-        await interaction.followup.send(partes[0])
+        await interaction.response.send_message(partes[0])
         for parte in partes[1:]:
             await interaction.followup.send(parte)
 
