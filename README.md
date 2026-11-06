@@ -61,6 +61,12 @@ Bot en español que lo sabe todo sobre *Alces vs Canadá* (carpeta [`discord_bot
 | `/moose-origins` | Explica dónde habitan los alces en el mundo |
 | `/game` | Enlace (y botón) para jugar en Roblox |
 | `/creators` | Los creadores del juego: Agus, Camilo y Jacob |
+| `/ayuda` | Lista de todos los comandos |
+
+Comandos extra en `discord_bot/extras.py`:
+- **Útiles:** `/links`, `/mapas`, `/skin`, `/clase`, `/monedas`, `/practica`, `/novedades`, `/consejo`
+- **Diversión:** `/trivia` (con botones), `/bando`, `/duelo`, `/nota`, `/oraculo`, `/mapa-random`, `/dato-alce`
+- **Info:** `/server`, `/usuario`, `/avatar`, `/ping`
 
 1. En el [Discord Developer Portal](https://discord.com/developers/applications) crea una aplicación → **Bot** → *Reset Token*.
 2. Invítalo con OAuth2 → URL Generator, scopes `bot` y `applications.commands`, permisos *Send Messages*, *Embed Links*.

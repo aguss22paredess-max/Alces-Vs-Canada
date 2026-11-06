@@ -25,6 +25,7 @@ import aiohttp
 import discord
 from discord import app_commands
 
+from extras import registrar_extras
 from respuestas import responder
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -250,6 +251,7 @@ class AlceKnow(discord.Client):
     async def setup_hook(self) -> None:
         self.sesion = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15))
         registrar_comandos(self)
+        registrar_extras(self)
         guild_id = os.environ.get("GUILD_ID")
         if guild_id:
             guild = discord.Object(id=int(guild_id))
