@@ -106,10 +106,10 @@ _taxon_alce: int | None = None
 
 
 async def id_taxon_alce(sesion: aiohttp.ClientSession) -> int | None:
-    """Pregunta (una sola vez) el número de especie de Alces alces en iNaturalist."""
+    """Busca (una sola vez) el número de especie del moose (Alces alces) en iNaturalist."""
     global _taxon_alce
     if _taxon_alce is None:
-        params = {"q": "Alces alces", "rank": "species", "per_page": "10"}
+        params = {"q": "moose", "rank": "species", "per_page": "10", "locale": "en"}
         async with sesion.get(f"{INATURALIST_API}/taxa", params=params,
                               headers={"User-Agent": USER_AGENT}) as r:
             r.raise_for_status()
@@ -130,9 +130,12 @@ async def foto_inaturalist(sesion: aiohttp.ClientSession) -> dict | None:
         "taxon_id": str(taxon_id),
         "photos": "true",
         "quality_grade": "research",
+        # Solo el animal: sin caca, huellas ni restos ("Evidence of Presence" = "Organism").
+        "term_id": "22",
+        "term_value_id": "24",
         "photo_license": "cc0,cc-by,cc-by-sa",
         "per_page": "50",
-        "page": str(random.randint(1, 20)),
+        "page": str(random.randint(1, 10)),
         "order_by": "votes",
     }
     async with sesion.get(f"{INATURALIST_API}/observations", params=params,
@@ -144,6 +147,12 @@ async def foto_inaturalist(sesion: aiohttp.ClientSession) -> dict | None:
         # Doble control: solo aceptamos observaciones identificadas como alce.
         nombre = (obs.get("taxon") or {}).get("name", "")
         if not nombre.startswith("Alces alces"):
+            continue
+        evidencias = {
+            (a.get("controlled_attribute_id"), a.get("controlled_value_id"))
+            for a in obs.get("annotations", [])
+        }
+        if (22, 24) not in evidencias:  # no es una foto del animal
             continue
         for foto in obs.get("photos", [])[:1]:
             url = foto.get("url") or ""
