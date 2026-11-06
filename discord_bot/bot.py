@@ -101,13 +101,33 @@ async def foto_commons(sesion: aiohttp.ClientSession) -> dict | None:
     return random.choice(fotos) if fotos else None
 
 
-INATURALIST_API = "https://api.inaturalist.org/v1/observations"
+INATURALIST_API = "https://api.inaturalist.org/v1"
+_taxon_alce: int | None = None
+
+
+async def id_taxon_alce(sesion: aiohttp.ClientSession) -> int | None:
+    """Pregunta (una sola vez) el número de especie de Alces alces en iNaturalist."""
+    global _taxon_alce
+    if _taxon_alce is None:
+        params = {"q": "Alces alces", "rank": "species", "per_page": "10"}
+        async with sesion.get(f"{INATURALIST_API}/taxa", params=params,
+                              headers={"User-Agent": USER_AGENT}) as r:
+            r.raise_for_status()
+            datos = await r.json()
+        for taxon in datos.get("results", []):
+            if taxon.get("name") == "Alces alces":
+                _taxon_alce = taxon["id"]
+                break
+    return _taxon_alce
 
 
 async def foto_inaturalist(sesion: aiohttp.ClientSession) -> dict | None:
-    """Plan B: una foto de alce con licencia libre de iNaturalist."""
+    """Una foto de alce verificada, con licencia libre, de iNaturalist."""
+    taxon_id = await id_taxon_alce(sesion)
+    if not taxon_id:
+        return None
     params = {
-        "taxon_name": "Alces alces",
+        "taxon_id": str(taxon_id),
         "photos": "true",
         "quality_grade": "research",
         "photo_license": "cc0,cc-by,cc-by-sa",
@@ -115,11 +135,16 @@ async def foto_inaturalist(sesion: aiohttp.ClientSession) -> dict | None:
         "page": str(random.randint(1, 20)),
         "order_by": "votes",
     }
-    async with sesion.get(INATURALIST_API, params=params, headers={"User-Agent": USER_AGENT}) as r:
+    async with sesion.get(f"{INATURALIST_API}/observations", params=params,
+                          headers={"User-Agent": USER_AGENT}) as r:
         r.raise_for_status()
         datos = await r.json()
     fotos = []
     for obs in datos.get("results", []):
+        # Doble control: solo aceptamos observaciones identificadas como alce.
+        nombre = (obs.get("taxon") or {}).get("name", "")
+        if not nombre.startswith("Alces alces"):
+            continue
         for foto in obs.get("photos", [])[:1]:
             url = foto.get("url") or ""
             if "square" not in url:
