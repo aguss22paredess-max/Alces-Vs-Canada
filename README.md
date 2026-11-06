@@ -48,3 +48,26 @@ El guion está en la lista `SCRIPT` de `generate_video.py`.
 - Subtítulos sincronizados frase por frase, con palabras clave en amarillo (`*así*` en el guion).
 - Cada tarjeta dura su narración + 0,5 s.
 - `python video_ranking_skins.py --muestras` genera 5 fotogramas y 10 s de voz en `output/muestras_skins/`.
+
+## Bot de Discord – AlceKnow
+
+Bot en español que lo sabe todo sobre *Alces vs Canadá* (carpeta [`discord_bot/`](discord_bot/)).
+
+| Comando | Qué hace |
+|---|---|
+| `/ask pregunta:` | Responde dudas del juego con Claude, usando lo escrito en `discord_bot/conocimiento.md` |
+| `/moose` | Muestra una foto real y al azar de un alce (Wikimedia Commons) |
+| `/moose-origins` | Explica dónde habitan los alces en el mundo |
+
+1. En el [Discord Developer Portal](https://discord.com/developers/applications) crea una aplicación → **Bot** → *Reset Token*.
+2. Invítalo con OAuth2 → URL Generator, scopes `bot` y `applications.commands`, permisos *Send Messages*, *Embed Links*.
+3. Configura y arranca:
+
+```bash
+cd discord_bot
+pip install -r requirements.txt
+cp .env.example .env      # pon DISCORD_TOKEN, ANTHROPIC_API_KEY y opcionalmente GUILD_ID
+python bot.py
+```
+
+Para que el bot sepa más del juego, edita `discord_bot/conocimiento.md` (no hace falta tocar el código; se relee en cada pregunta).

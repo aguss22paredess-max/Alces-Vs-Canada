@@ -1,3 +1,4 @@
 build/
 voices/
 __pycache__/
+.env
