@@ -50,7 +50,8 @@ TEMAS: list[dict] = [
                      "Salgo en los videos de AlceKnow.",
     },
     {
-        "claves": ["creador", "aguz", "agus", "camilo", "jacob", "quien hizo", "quien creo", "dueno"],
+        "claves": ["creador", "crearon", "hicieron", "aguz", "agus", "camilo", "jacob", "quien hizo",
+                   "quien creo", "dueno"],
         "respuesta": "Los creadores del juego son **Agus**, **Camilo** y **Jacob**. 👑 "
                      "Ojo: si juegas una partida con Aguz te ganas el badge secreto "
                      "**\"itzNotAguz\"**. Y su skin, el Alce Aguz, es un 10/10. 🫎",
