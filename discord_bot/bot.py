@@ -5,6 +5,8 @@ Comandos:
                          sin usar ninguna API de pago).
   /moose                 Muestra una foto real de un alce sacada de Wikimedia Commons.
   /moose-origins         Explica dónde viven los alces en el mundo.
+  /game                  Muestra el enlace para jugar Alces VS Canadá en Roblox.
+  /creators              Muestra a los creadores del juego.
 
 Variables de entorno (o archivo .env junto a este script):
   DISCORD_TOKEN       Token del bot (Discord Developer Portal -> Bot -> Reset Token).
@@ -30,6 +32,9 @@ COLOR_ALCE = discord.Color.from_rgb(139, 90, 43)
 LIMITE_DISCORD = 2000
 # Wikimedia rechaza (403) a los bots que no dejan un enlace de contacto en el User-Agent.
 USER_AGENT = "ProfesorAlceBot/1.1 (https://github.com/aguss22paredess-max/Alces-Vs-Canada) discord.py"
+
+ENLACE_JUEGO = "https://www.roblox.com/games/75124408421132"
+CREADORES = ["Agus", "Camilo", "Jacob"]
 
 log = logging.getLogger("alceknow")
 
@@ -291,6 +296,29 @@ def registrar_comandos(bot: AlceKnow) -> None:
     @bot.tree.command(name="moose-origins", description="Explica dónde habitan los alces en el mundo")
     async def moose_origins(interaction: discord.Interaction) -> None:
         await interaction.response.send_message(embed=embed_origenes())
+
+
+    @bot.tree.command(name="game", description="Enlace para jugar Alces VS Canadá en Roblox")
+    async def game(interaction: discord.Interaction) -> None:
+        e = discord.Embed(
+            title="🎮 Alces VS Canadá",
+            url=ENLACE_JUEGO,
+            description=f"¡Ojo, pillo! Entra al tiro y elige tu bando: **Alce** o **Soldado**. 🫎⚔️\n{ENLACE_JUEGO}",
+            color=COLOR_ALCE,
+        )
+        boton = discord.ui.View()
+        boton.add_item(discord.ui.Button(label="Jugar en Roblox", url=ENLACE_JUEGO, emoji="🎮"))
+        await interaction.response.send_message(embed=e, view=boton)
+
+    @bot.tree.command(name="creators", description="Los creadores de Alces VS Canadá")
+    async def creators(interaction: discord.Interaction) -> None:
+        nombres = "\n".join(f"🫎 **{nombre}**" for nombre in CREADORES)
+        e = discord.Embed(
+            title="👑 Creadores de Alces VS Canadá",
+            description=f"{nombres}\n\nGracias a ellos existe este juego. De nada. 🫎",
+            color=COLOR_ALCE,
+        )
+        await interaction.response.send_message(embed=e)
 
 
 def main() -> None:

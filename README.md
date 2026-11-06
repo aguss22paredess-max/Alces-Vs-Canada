@@ -59,6 +59,8 @@ Bot en español que lo sabe todo sobre *Alces vs Canadá* (carpeta [`discord_bot
 | `/ask pregunta:` | El Profesor Alce responde dudas del juego con respuestas ya escritas en `discord_bot/respuestas.py` |
 | `/moose` | Muestra una foto real y al azar de un alce (Wikimedia Commons) |
 | `/moose-origins` | Explica dónde habitan los alces en el mundo |
+| `/game` | Enlace (y botón) para jugar en Roblox |
+| `/creators` | Los creadores del juego: Agus, Camilo y Jacob |
 
 1. En el [Discord Developer Portal](https://discord.com/developers/applications) crea una aplicación → **Bot** → *Reset Token*.
 2. Invítalo con OAuth2 → URL Generator, scopes `bot` y `applications.commands`, permisos *Send Messages*, *Embed Links*.

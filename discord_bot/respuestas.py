@@ -50,10 +50,10 @@ TEMAS: list[dict] = [
                      "Salgo en los videos de AlceKnow.",
     },
     {
-        "claves": ["creador", "aguz", "quien hizo", "quien creo", "dueno"],
-        "respuesta": "El creador del juego es **Aguz**. Ojo: si juegas una partida con él "
-                     "te ganas el badge secreto **\"itzNotAguz\"**. Y su skin, el Alce Aguz, "
-                     "es un 10/10. 🫎",
+        "claves": ["creador", "aguz", "agus", "camilo", "jacob", "quien hizo", "quien creo", "dueno"],
+        "respuesta": "Los creadores del juego son **Agus**, **Camilo** y **Jacob**. 👑 "
+                     "Ojo: si juegas una partida con Aguz te ganas el badge secreto "
+                     "**\"itzNotAguz\"**. Y su skin, el Alce Aguz, es un 10/10. 🫎",
     },
 
     # ── Enlaces ───────────────────────────────────────────────────────────
