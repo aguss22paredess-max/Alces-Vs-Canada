@@ -28,7 +28,8 @@ from respuestas import responder
 BASE_DIR = Path(__file__).resolve().parent
 COLOR_ALCE = discord.Color.from_rgb(139, 90, 43)
 LIMITE_DISCORD = 2000
-USER_AGENT = "AlceKnowDiscordBot/1.0 (bot de Discord de Alces vs Canada)"
+# Wikimedia rechaza (403) a los bots que no dejan un enlace de contacto en el User-Agent.
+USER_AGENT = "ProfesorAlceBot/1.1 (https://github.com/aguss22paredess-max/Alces-Vs-Canada) discord.py"
 
 log = logging.getLogger("alceknow")
 
@@ -68,7 +69,7 @@ def partir_mensaje(texto: str, limite: int = LIMITE_DISCORD) -> list[str]:
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 
 
-async def foto_de_alce(sesion: aiohttp.ClientSession) -> dict | None:
+async def foto_commons(sesion: aiohttp.ClientSession) -> dict | None:
     """Busca una foto al azar de un alce (Alces alces) en Wikimedia Commons."""
     params = {
         "action": "query",
@@ -95,8 +96,55 @@ async def foto_de_alce(sesion: aiohttp.ClientSession) -> dict | None:
                 "titulo": p.get("title", "").removeprefix("File:").rsplit(".", 1)[0],
                 "imagen": url,
                 "pagina": info.get("descriptionurl"),
+                "fuente": "Wikimedia Commons",
             })
     return random.choice(fotos) if fotos else None
+
+
+INATURALIST_API = "https://api.inaturalist.org/v1/observations"
+
+
+async def foto_inaturalist(sesion: aiohttp.ClientSession) -> dict | None:
+    """Plan B: una foto de alce con licencia libre de iNaturalist."""
+    params = {
+        "taxon_name": "Alces alces",
+        "photos": "true",
+        "quality_grade": "research",
+        "photo_license": "cc0,cc-by,cc-by-sa",
+        "per_page": "50",
+        "page": str(random.randint(1, 20)),
+        "order_by": "votes",
+    }
+    async with sesion.get(INATURALIST_API, params=params, headers={"User-Agent": USER_AGENT}) as r:
+        r.raise_for_status()
+        datos = await r.json()
+    fotos = []
+    for obs in datos.get("results", []):
+        for foto in obs.get("photos", [])[:1]:
+            url = foto.get("url") or ""
+            if "square" not in url:
+                continue
+            fotos.append({
+                "titulo": (foto.get("attribution") or "Foto de iNaturalist"),
+                "imagen": url.replace("square", "large"),
+                "pagina": obs.get("uri") or f"https://www.inaturalist.org/observations/{obs.get('id')}",
+                "fuente": "iNaturalist",
+            })
+    return random.choice(fotos) if fotos else None
+
+
+async def foto_de_alce(sesion: aiohttp.ClientSession) -> dict | None:
+    """Prueba primero Wikimedia Commons y, si falla, iNaturalist."""
+    for buscar in (foto_commons, foto_inaturalist):
+        for _ in range(2):  # algunos rangos de búsqueda vienen vacíos
+            try:
+                foto = await buscar(sesion)
+            except (aiohttp.ClientError, TimeoutError) as exc:
+                log.warning("No se pudo obtener la foto de %s: %s", buscar.__name__, exc)
+                break
+            if foto:
+                return foto
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -197,20 +245,13 @@ def registrar_comandos(bot: AlceKnow) -> None:
     @bot.tree.command(name="moose", description="Muestra una foto de un alce sacada de internet")
     async def moose(interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        foto = None
-        try:
-            for _ in range(3):  # algunos rangos de búsqueda vienen vacíos
-                foto = await foto_de_alce(bot.sesion)
-                if foto:
-                    break
-        except (aiohttp.ClientError, TimeoutError) as exc:
-            log.warning("No se pudo obtener la foto: %s", exc)
+        foto = await foto_de_alce(bot.sesion)
         if not foto:
             await interaction.followup.send("🫎 No encontré ningún alce esta vez. ¡Prueba otra vez!")
             return
         e = discord.Embed(title="🫎 ¡Un alce salvaje apareció!", url=foto["pagina"], color=COLOR_ALCE)
         e.set_image(url=foto["imagen"])
-        e.set_footer(text=f"{foto['titulo'][:200]} · Wikimedia Commons")
+        e.set_footer(text=f"{foto['titulo'][:200]} · {foto['fuente']}")
         await interaction.followup.send(embed=e)
 
     @bot.tree.command(name="moose-origins", description="Explica dónde habitan los alces en el mundo")
