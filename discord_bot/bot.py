@@ -256,11 +256,12 @@ class AlceKnow(discord.Client):
         if guild_id:
             guild = discord.Object(id=int(guild_id))
             self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
-            log.info("Comandos sincronizados en el servidor %s", guild_id)
+            sincronizados = await self.tree.sync(guild=guild)
+            log.info("%d comandos sincronizados en el servidor %s", len(sincronizados), guild_id)
         else:
-            await self.tree.sync()
-            log.info("Comandos sincronizados globalmente (pueden tardar hasta 1 h en aparecer)")
+            sincronizados = await self.tree.sync()
+            log.info("%d comandos sincronizados globalmente (pueden tardar hasta 1 h en aparecer)",
+                     len(sincronizados))
 
     async def close(self) -> None:
         if self.sesion:
@@ -298,7 +299,6 @@ def registrar_comandos(bot: AlceKnow) -> None:
     @bot.tree.command(name="moose-origins", description="Explica dónde habitan los alces en el mundo")
     async def moose_origins(interaction: discord.Interaction) -> None:
         await interaction.response.send_message(embed=embed_origenes())
-
 
     @bot.tree.command(name="game", description="Enlace para jugar Alces VS Canadá en Roblox")
     async def game(interaction: discord.Interaction) -> None:
