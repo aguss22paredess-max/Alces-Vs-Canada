@@ -70,4 +70,4 @@ cp .env.example .env      # pon DISCORD_TOKEN, ANTHROPIC_API_KEY y opcionalmente
 python bot.py
 ```
 
-Para que el bot sepa más del juego, edita `discord_bot/conocimiento.md` (no hace falta tocar el código; se relee en cada pregunta).
+La personalidad del **Profesor Alce** y todo lo que sabe del juego están en `discord_bot/conocimiento.md`. Para cambiar datos (notas, precios, códigos), edita ese archivo: no hace falta tocar el código y se relee en cada pregunta.

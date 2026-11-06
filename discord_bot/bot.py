@@ -48,16 +48,13 @@ def cargar_env(ruta: Path) -> None:
 
 
 def prompt_sistema() -> str:
-    conocimiento = CONOCIMIENTO.read_text(encoding="utf-8") if CONOCIMIENTO.exists() else ""
+    """La personalidad y todo lo que sabe el Profesor Alce vienen de conocimiento.md."""
+    personaje = CONOCIMIENTO.read_text(encoding="utf-8") if CONOCIMIENTO.exists() else ""
     return (
-        "Eres AlceKnow, el Alce Profesor: el experto que lo sabe todo sobre el juego "
-        "Alces vs Canadá. Respondes en un servidor de Discord, siempre en español, con un "
-        "tono amigable y divertido, y de forma breve (máximo unos 1500 caracteres). "
-        "Usa formato de Discord (negritas, listas) solo cuando ayude.\n\n"
-        "Basa tus respuestas sobre el juego en la información de <conocimiento>. Si algo del "
-        "juego no aparece ahí, dilo con honestidad en lugar de inventarlo. Si la pregunta no "
-        "es del juego, puedes responderla igual de forma breve.\n\n"
-        f"<conocimiento>\n{conocimiento}\n</conocimiento>"
+        f"{personaje.strip()}\n\n"
+        "═══ FORMATO EN DISCORD ═══\n"
+        "- Escribe directamente la respuesta del Profesor Alce, sin el prefijo \"Profesor Alce:\".\n"
+        "- Puedes usar negritas y listas de Discord cuando ayuden. Nunca pases de 1900 caracteres."
     )
 
 
