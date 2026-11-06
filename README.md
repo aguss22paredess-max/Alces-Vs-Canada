@@ -48,3 +48,38 @@ El guion está en la lista `SCRIPT` de `generate_video.py`.
 - Subtítulos sincronizados frase por frase, con palabras clave en amarillo (`*así*` en el guion).
 - Cada tarjeta dura su narración + 0,5 s.
 - `python video_ranking_skins.py --muestras` genera 5 fotogramas y 10 s de voz en `output/muestras_skins/`.
+
+## Bot de Discord – Profesor Alce
+
+Bot en español que lo sabe todo sobre *Alces vs Canadá* (carpeta [`discord_bot/`](discord_bot/)).
+**No usa ninguna API de pago**: solo necesita el token del bot.
+
+| Comando | Qué hace |
+|---|---|
+| `/ask pregunta:` | El Profesor Alce responde dudas del juego con respuestas ya escritas en `discord_bot/respuestas.py` |
+| `/moose` | Muestra una foto real y al azar de un alce (Wikimedia Commons) |
+| `/moose-origins` | Explica dónde habitan los alces en el mundo |
+| `/game` | Enlace (y botón) para jugar en Roblox |
+| `/creators` | Los creadores del juego: Agus, Camilo y Jacob |
+| `/ayuda` | Lista de todos los comandos |
+
+Comandos extra en `discord_bot/extras.py`:
+- **Útiles:** `/links`, `/mapas`, `/skin`, `/clase`, `/monedas`, `/practica`, `/novedades`, `/consejo`
+- **Diversión:** `/trivia` (con botones), `/bando`, `/duelo`, `/nota`, `/oraculo`, `/mapa-random`, `/dato-alce`
+- **Info:** `/server`, `/usuario`, `/avatar`, `/ping`
+
+1. En el [Discord Developer Portal](https://discord.com/developers/applications) crea una aplicación → **Bot** → *Reset Token*.
+2. Invítalo con OAuth2 → URL Generator, scopes `bot` y `applications.commands`, permisos *Send Messages*, *Embed Links*.
+3. Configura y arranca:
+
+```bash
+cd discord_bot
+pip install -r requirements.txt
+cp .env.example .env      # pon DISCORD_TOKEN y opcionalmente GUILD_ID
+python bot.py
+```
+
+`/ask` busca palabras clave en la pregunta (sin importar tildes ni mayúsculas) y contesta con el tema que
+más coincide; si preguntan por dos cosas a la vez ("¿Pyro o Leñador?") responde ambas. Para agregar o
+cambiar respuestas, edita la lista `TEMAS` de `discord_bot/respuestas.py` y reinicia el bot.
+`discord_bot/conocimiento.md` guarda los apuntes originales del Profesor como referencia.
