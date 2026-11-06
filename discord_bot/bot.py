@@ -75,10 +75,10 @@ async def foto_commons(sesion: aiohttp.ClientSession) -> dict | None:
         "action": "query",
         "format": "json",
         "generator": "search",
-        "gsrsearch": '"Alces alces" filetype:bitmap',
+        "gsrsearch": 'incategory:"Alces alces" filetype:bitmap',
         "gsrnamespace": "6",
         "gsrlimit": "50",
-        "gsroffset": str(random.randint(0, 400)),
+        "gsroffset": str(random.randint(0, 100)),
         "prop": "imageinfo",
         "iiprop": "url",
         "iiurlwidth": "1280",
@@ -134,8 +134,8 @@ async def foto_inaturalist(sesion: aiohttp.ClientSession) -> dict | None:
 
 
 async def foto_de_alce(sesion: aiohttp.ClientSession) -> dict | None:
-    """Prueba primero Wikimedia Commons y, si falla, iNaturalist."""
-    for buscar in (foto_commons, foto_inaturalist):
+    """Prueba primero iNaturalist (fotos verificadas por expertos) y, si falla, Wikimedia Commons."""
+    for buscar in (foto_inaturalist, foto_commons):
         for _ in range(2):  # algunos rangos de búsqueda vienen vacíos
             try:
                 foto = await buscar(sesion)
